@@ -26,7 +26,7 @@ loadFromJsonFile path = do
     out <- Aeson.decodeFileStrict path
     case out of
         Just v -> return v
-        Nothing -> error "cannot load config from file"
+        Nothing -> fail "cannot load config from file"
 
 loadFromYamlFile :: String -> IO Config
 loadFromYamlFile path = Yaml.decodeFileThrow path

@@ -24,7 +24,7 @@ mustExecGitCommand msg repo args = do
     (ec, contents) <- execGitCommand repo args
     case ec of
         ExitSuccess -> return contents
-        ExitFailure code -> error $ msg ++ " error code = " ++ show code
+        ExitFailure code -> fail $ msg ++ " error code = " ++ show code
 
 lastCommitId :: Repo -> IO CommitId
 lastCommitId repo = fmap (Text.unpack . Text.strip . Text.pack . snd) $ execGitCommand repo ["rev-parse", Config.branch $ repoConfig repo]
