@@ -49,5 +49,5 @@ periodicallyQueryAll :: Config.Config -> IO ()
 periodicallyQueryAll cfg = do
     putStrLn "start queryAll"
     queryAll cfg
-    Concurrent.threadDelay (5000000) -- micros
+    Concurrent.threadDelay ((Config.queryIntervalMillis cfg) * 1000) -- micros
     periodicallyQueryAll cfg
