@@ -19,33 +19,33 @@ execGitCommand repo args = do
     contents <- hGetContents hout
     return (ec, contents)
 
-unwrapGitResultWithMsg :: String -> (ExitCode, String) -> String
-unwrapGitResultWithMsg msg (ec, contents) = case ec of
-    ExitSuccess -> contents
-    ExitFailure code -> error $ msg ++ " error code = " ++ show code
+mustExecGitCommand :: String -> Repo -> [String] -> IO String
+mustExecGitCommand msg repo args = do
+    (ec, contents) <- execGitCommand repo args
+    case ec of
+        ExitSuccess -> return contents
+        ExitFailure code -> error $ msg ++ " error code = " ++ show code
 
-unwrapGitResult :: (ExitCode, String) -> String
-unwrapGitResult = unwrapGitResultWithMsg "git exited with error."
+lastCommitId :: Repo -> IO CommitId
+lastCommitId repo = fmap (Text.unpack . Text.strip . Text.pack . snd) $ execGitCommand repo ["rev-parse", Config.branch $ repoConfig repo]
 
-lastCommitId :: Repo -> String -> IO CommitId
-lastCommitId repo branch = fmap (Text.unpack . Text.strip . Text.pack . snd) $ execGitCommand repo ["rev-parse", branch]
-
-compareAndUpdate :: Repo -> String -> CommitId -> IO ()
-compareAndUpdate repo branch remoteCommit = do
-    localCommit <- lastCommitId repo branch
+compareAndUpdate :: Repo -> CommitId -> IO ()
+compareAndUpdate repo remoteCommit = do
+    localCommit <- lastCommitId repo
     case take 16 localCommit == take 16 remoteCommit of
         True -> return ()
-        False -> fetchAndUpdate repo branch
+        False -> fetchAndUpdate repo
 
-fetchAndUpdate :: Repo -> String -> IO ()
-fetchAndUpdate repo branch = do
-    fmap (unwrapGitResultWithMsg "cannot checkout local branch.") $ execGitCommand repo ["checkout", branch]
-    fmap (unwrapGitResultWithMsg "cannot hard-reset local branch.") $ execGitCommand repo ["reset", "--hard"]
+fetchAndUpdate :: Repo -> IO ()
+fetchAndUpdate repo = do
+    let branch = Config.branch $ repoConfig repo
+    mustExecGitCommand "cannot checkout local branch." repo ["checkout", branch]
+    mustExecGitCommand "cannot hard-reset local branch." repo ["reset", "--hard"]
 
     execGitCommand repo ["remote", "remove", "gd-remote"] -- this can fail if gd-remote didn't exist before.
 
-    fmap (unwrapGitResultWithMsg "cannot add gd-remote.") $ execGitCommand repo ["remote", "add", "gd-remote", (Config.remotePath . repoConfig) repo]
-    fmap (unwrapGitResultWithMsg "cannot fetch from gd-remote.") $ execGitCommand repo ["fetch", "gd-remote", branch]
-    fmap (unwrapGitResultWithMsg "cannot merge remote branch into local branch (fast-forward).") $ execGitCommand repo ["merge", "--ff-only", "gd-remote/" ++ branch]
+    mustExecGitCommand "cannot add gd-remote." repo ["remote", "add", "gd-remote", (Config.remoteUrl . repoConfig) repo]
+    mustExecGitCommand "cannot fetch from gd-remote." repo ["fetch", "gd-remote", branch]
+    mustExecGitCommand "cannot merge remote branch into local branch (fast-forward)." repo ["merge", "--ff-only", "gd-remote/" ++ branch]
 
     return ()
