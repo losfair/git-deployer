@@ -6,13 +6,14 @@ import qualified Data.Aeson as Aeson
 import qualified Data.Yaml as Yaml
 import GHC.Generics
 
-data Config = Config { repos :: [RepoConfig] } deriving (Show, Generic)
+data Config = Config { repos :: [RepoConfig], queryIntervalMillis :: Int } deriving (Show, Generic)
 data RepoConfig = RepoConfig {
     provider :: String,
     providerToken :: String,
     remoteRepo :: String,
     branch :: String,
-    localPath :: String
+    localPath :: String,
+    deployCommand :: Maybe String
 } deriving (Show, Generic)
 
 instance Aeson.ToJSON Config
