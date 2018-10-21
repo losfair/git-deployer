@@ -39,7 +39,7 @@ queryAll cfg = do
         queryAllRepos :: [Config.RepoConfig] -> IO [MVar.MVar ()]
         queryAllRepos [] = return []
         queryAllRepos (x:xs) = do
-            mv <- MVar.newMVar ()
+            mv <- MVar.newEmptyMVar :: IO (MVar.MVar ())
             Concurrent.forkFinally
                 (Exception.handle (\(Exception.SomeException e) -> putStrLn $ "unable to query " ++ Config.provider x ++ " repo " ++ Config.remoteRepo x ++ ": " ++ show e) $ queryOne x)
                 (\_ -> MVar.putMVar mv ())
